@@ -1,0 +1,171 @@
+---
+title: "Final Project Prediction"
+author: "Owen Ling"
+output: 
+    pdf_document
+---
+
+* UW ID: 20904591
+
+Important: follow the structure of the document and **summarize important handlings in the summary section**. The structure here is kept at a minimum, feel free if you have more subsections and details to add. Delete this paragraph in the end.
+
+# Summary
+
+## Preprocessing
+
+### Transformation (if any)
+* salary: I log-transformed the response variate salary.\
+* The following predictor variables were log-transformed: pts, goal, age, takeaway, giveaway, pim, and hits.\
+* date: converted to numerical variable using as.numeric(as.date()) function.\
+* the following variables were converted into numerical factors: nat, team, pos.\
+* The following variables were converted to 2nd-degree polynomials: gp and pm.\
+
+### New Variables
+<!-- List all variables/predictors added to dtrain and dtest  -->
+* pts_toi: interaction between points and time on ice.\
+* goal_toi: intercation between goal and time on ice.\
+* toi_gp: interaction between games played and time on ice.\
+* pim_hits: interaction between penalty minutes and hits.\
+* pm_toi: interaction between plus-minus and time on ice.\
+* take_toi: interaction between takeaway and time on ice.\
+* give_toi: interaction between giveaway and time on ice.\
+* take_pm: interactio between taekaway and plus_minus.\
+* toi_inj: interaction between time on ice and games injured.\
+* toi_age: interaction between tim eon ice and age.\
+* injure_pts: interaction between games injured and points.\
+
+## Model
+Summarize your model here: could be the formula for a smoothing method, random forest, etc.\
+\
+My model is a random forest model with the following formula: "log(salary)~.", which is all the default variables(some transformed as mentioned above in the "transformation section") and the interaction variables in the "new variables" section.
+\
+
+## Model Building
+Summarize your model building process, such as model selection strategy for a smoothing method, or  parameter combinations searched for a random forest. Report your minimized error measure. If you have attempted multiple methods, report the minimized error measure for each.
+
+
+<!-- Details -->
+<!-- R code starts, please present both code and output. -->
+<!-- Provide descriptions and explanations to justify your operations -->
+<!-- Be brief and to the point. -->
+<!-- Only details lead to your final model are needed. If you tried other appoaches/models, you can mention them, no details needed for abandoned attempts. -->
+
+
+
+# 1.Preprocessing
+
+## 1.1 Loading data
+```{r,echo=TRUE}
+load("final.Rdata")
+```
+
+```{r}
+library(moments)
+#check the skewness of the distribution for each variable to determine whether log transformation is needed
+num_vars = c("cap", "gp", "toi", "pts", "goal", "age", 
+             "takeaway", "giveaway", "relCorsi", "pim", "hits", "pm")
+par(mfrow = c(2, 2))
+for (c in num_vars) {
+  hist(dtrain[[c]], main = paste("hist of", c), xlab = paste("skewness:", skewness(dtrain[[c]])))
+}
+```
+
+```{r}
+set.seed(444)
+library(randomForest)
+library(ranger)
+library(caret)
+
+  dtrain$date = as.numeric(as.Date(dtrain$date))
+  
+  #skewness:
+  dtrain$pts = log(dtrain$pts+1)
+  dtrain$goal = log(dtrain$goal+1)
+  dtrain$age = log(dtrain$age)
+  dtrain$takeaway = log(dtrain$takeaway+1)
+  dtrain$giveaway = log(dtrain$giveaway+1)
+  dtrain$pim = log(dtrain$pim+1)
+  dtrain$hits = log(dtrain$hits+1)
+  
+  #categorical->numbers
+  dtrain$nat = as.integer(factor(dtrain$nat))
+  dtrain$team = as.integer(factor(dtrain$team))
+  dtrain$pos = as.integer(factor(dtrain$pos))
+  
+  #interactions
+  dtrain$pts_toi= dtrain$pts*dtrain$toi
+  dtrain$goal_toi = dtrain$goal*dtrain$toi
+  dtrain$toi_gp = dtrain$toi*dtrain$gp
+  dtrain$pim_hits =  dtrain$pim*dtrain$hits
+  dtrain$pm_toi = dtrain$pm*dtrain$toi
+  
+  dtrain$take_toi = dtrain$takeaway*dtrain$toi
+  dtrain$give_toi = dtrain$giveaway*dtrain$toi
+  dtrain$take_pm = dtrain$takeaway*dtrain$pm
+  dtrain$toi_inj= dtrain$toi*dtrain$injure
+  dtrain$toi_age = dtrain$toi*dtrain$age
+  
+  
+  dtrain$injure_pts=dtrain$injure*dtrain$pts
+```
+\
+\
+```{r}
+#plot each variable against salary to examine each individual relationship in detail, 
+#in order to determine whether polynomial/exponential transformations are needed.
+par(mfrow = c(2, 2))
+for (c in num_vars) {
+  plot(log(dtrain$salary)~dtrain[[c]], main = paste0("plot of log(salary)~", c)
+       , xlab = paste("variable:", c), data = dtrain)
+}
+```
+\
+```{r}
+#polynomials
+  dtrain$gp = poly(dtrain$gp, degree=2)
+  dtrain$pm = poly(dtrain$pm, degree= 2)
+```
+\
+# 2.Model Building
+```{r}
+set.seed(444)
+train_control <- trainControl(method = "cv", number = 5, search = "grid")
+  fit_test <- train(
+    log(salary) ~ .,
+    data = dtrain,
+    method = "ranger", #this is another function for random forest.
+    trControl = train_control,
+    tuneLength = 50,
+    verbose=1,
+    importance = "permutation"
+  )
+
+print(fit_test)
+fit_test$bestTune
+imp = varImp(fit_test)
+print(imp)
+plot(varImp(fit_test), top = 30)
+```
+\
+I saw that pts, goal, and toi had the most impact on improving the accuracy of the model, so I created many interactions involving these 3 variables that I found to be meaningful.
+\
+# 3.Evaluation
+<!-- Make sure your code runs without error, and record the running time -->
+```{r,echo=TRUE}
+rm(list=ls())
+# first set working directory to the data location
+load("final.Rdata")
+# final.Rdata contains dtrain and dtest
+
+# load user-defined FinalModel function
+source("20904591.R")
+# call the function
+tmp <- system.time(res <- FinalModel(dtrain, dtest))
+# time used, this is the "Running_time" you report in your R source file
+tmp[3]
+
+dim(res)
+# should be 400 by 2
+
+head(res)
+```
