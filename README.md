@@ -38,13 +38,13 @@ Trained a Random Forest model using the ranger package via caret
 Used 5-fold cross-validation with a grid search across 50 hyperparameter combinations to optimize model performance
 Evaluated feature importance using permutation-based variable importance
 
-<h3>Key Findings</h3>
+<h2>Key Findings</h2>
 
 Points, goals, and time on ice were the strongest predictors of NHL player salary, suggesting teams most heavily reward consistent offensive production and ice time deployment
 Interaction terms between performance metrics and time on ice meaningfully improved model accuracy, indicating that production per minute of deployment matters beyond raw counting stats
 Final model achieved an RMSLE of 0.30868 on the holdout test set
 
-<h3>Files</h3>
+<h2>Files</h2>
 
 code_file.Rmd — Full analysis with preprocessing, feature engineering, model building, and evaluation
 report.pdf — Rendered PDF report
