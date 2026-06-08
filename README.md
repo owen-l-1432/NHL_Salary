@@ -1,4 +1,4 @@
-#NHL Player Salary Prediction
+<h1>NHL Player Salary Prediction
 **Project Overview**
 
 This project predicts NHL player salaries using a Random Forest regression model built in R. The goal is to identify which on-ice performance metrics most strongly drive player compensation, and to build a model that generalizes well to unseen players.
